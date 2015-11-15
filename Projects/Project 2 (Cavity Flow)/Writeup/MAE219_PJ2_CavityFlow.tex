@@ -1,0 +1,173 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%% asme2ej.tex %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Template for producing ASME-format journal articles using LaTeX    %
+% Written by   Harry H. Cheng, Professor and Director                %
+%              Integration Engineering Laboratory                    %
+%              Department of Mechanical and Aeronautical Engineering %
+%              University of California                              %
+%              Davis, CA 95616                                       %
+%              Tel: (530) 752-5020 (office)                          %
+%                   (530) 752-1028 (lab)                             %
+%              Fax: (530) 752-4158                                   %
+%              Email: hhcheng@ucdavis.edu                            %
+%              WWW:   http://iel.ucdavis.edu/people/cheng.html       %
+%              May 7, 1994                                           %
+% Modified: February 16, 2001 by Harry H. Cheng                      %
+% Modified: January  01, 2003 by Geoffrey R. Shiflett                %
+% Use at your own risk, send complaints to /dev/null                 %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% use twocolumn and 10pt options with the asme2ej format
+\documentclass[twocolumn,10pt]{asme2ej}
+
+\usepackage{epsfig} %% for loading postscript figures
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{grffile}
+\usepackage{pdfpages}
+\usepackage{algpseudocode}
+%\usepackage{multicol}
+
+%% The class has several options
+%  onecolumn/twocolumn - format for one or two columns per page
+%  10pt/11pt/12pt - use 10, 11, or 12 point font
+%  oneside/twoside - format for oneside/twosided printing
+%  final/draft - format for final/draft copy
+%  cleanfoot - take out copyright info in footer leave page number
+%  cleanhead - take out the conference banner on the title page
+%  titlepage/notitlepage - put in titlepage or leave out titlepage
+%
+%% The default is oneside, onecolumn, 10pt, final
+
+\title{Case Study 2 -- Cavity Flow}
+
+%%% first author
+\author{Logan Halstrom
+    \affiliation{
+	PhD Graduate Student Researcher\\
+	Center for Human/Robot/Vehicle Integration and Performance\\
+	Department of Mechanical and Aerospace Engineering\\
+	University of California, Davis\\
+	Davis, California 95616\\
+    Email: ldhalstrom@ucdavis.edu
+    }
+}
+
+\begin{document}
+\maketitle
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Problem Description}
+
+This case study was an introduction to the field of Computational Fluid Dynamics (CFD).  Simulations were run for flow over an open, square cavity, where entering flow created circular streamlines with eddies in the corners.  A grid sensitivity study was performed comparing the performance of a coarse mesh of 129x129 points and a fine mesh of 257x257 points.  The simulation was run for a variety of Reynolds numbers ranging from laminar to turbulent flow to observe the differences in these types of flow as well as to observed the differences in the performance of the computational solver.  
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{OpenFOAM Solver Setup}
+
+All simulations were run using OpenFOAM CFD solver, which required a number of steps to step up as a functioning system.  First, Ubuntu was installed on a partition allowing the users to dual-boot with the previously existing operating system.  The installation of the operating system was relatively simple, but required the use of a third-party program to format the Ubuntu installer on a flash drive.  (For my own reference, to install Ubuntu, engage the Boot Menu by pressing F12 at the instant when the startup process enters POST.  In the menu, select ‘USB-ZIP’ as the boot location.  This will proceed to an Ubuntu installation menu).
+
+With Ubuntu installed, the next step was to install OpenFOAM and ParaView.  Following online instructions, these processes were relatively straightforward, but they required an internet connection.  After much troubleshooting, it was determined that the system’s wireless router was not linux compatible, so the programs were downloaded through a wired connection.  For future case studies, the researcher will purchase a linux-compatible wireless adapter for more convenient application acquisition.  
+
+Both OpenFOAM and ParaView ran without errors “out-of-the-box”.  It was found useful to enable the LIC plug-in in ParaView for better streamline visualization.  The final difficulty was gaining familiarity with a linux-based text editor, for modification of the input files.  All in all, no one single task in this process was exceedingly difficult, but the compounding difficulty of all of these issues occurring together was significant and required considerable time to sort out.  Therefore, it is appreciated that the actual simulations for this case study were primarily from a tutorial.  This allowed the user to gain familiarity with the system by example.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Simulation Results and Discussion}
+
+%%%FIGURES
+Each simulation was run until convergence was confirmed.  Results are presented with plots of constant streamfunction, which correspond to the streamlines of the flow.
+
+%\clearpage
+\vspace{-2em}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{Results/streamfunction.Re100.png}
+\caption{Streamfunction for $Re = 100,\, 129x129\, grid ,\, t = 1.1s$}
+\end{center}
+\end{figure}
+\vspace{-2em}
+
+For the lowest Reynolds number cases (Re = 100) shown in Figure 1, we see relatively continuous, curved streamlines throughout the cavity except for the very tips of the two bottom corners, where eddies begin to form.  This depicts the expected laminar flow solution, and the results match those in Ghia [1].  The flow is dominated by a single large eddy within the cavity, centered above and to the right of the actual cavity center due to the direction of the flow over the cavity.  The velocity of the flow is greatest in the center of this eddy, and slows radially outward, nearer the viscous effects of the wall.
+
+To test mesh sensitivity, the simulation was next run for Re = 400 for both the coarse 129x129 mesh and the fine 257x257 mesh.  Results had not significant differences, so it was determined that the coarse mesh was acceptable to use for simulations with Reynolds numbers of this order.
+
+The highest Reynolds number run for the 129x129 mesh was Re = 1000 shown in Figure 2.
+
+\vspace{-2em}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{Results/streamfunction.Re1000.png}
+\caption{Streamfunction for $Re = 1000,\, 129x129\, grid ,\, t = 2.7s$}
+\end{center}
+\end{figure}
+\vspace{-2em}
+
+In this simulation, we can see the flow becoming increasingly turbulent as the corner eddies grow in size.  This increase in turbulence created a more difficult solution, requiring 2.7s of physical time to converge, which is almost three times the amount required for the Re = 100 case.  Considering general differences, the magnitudes of the maximum and minimum values of the streamfunction remain similar to the lower Reynolds number case, but the central eddy shifts its location more towards the center of the cavity.  This may be due to increased viscous effects on all of the walls, rather than only on the right and bottom wall, slowing the flow equally and giving a more symmetric steady-state result.  Finally, the beginnings of a third eddy can be seen in the upper-left corner.  While the previous two eddies are created by the impact of the flow with a surface 90 degrees to its direction of travel, this eddy is instead caused by the interaction of the flow with the uniform cross-flow outside the cavity, traveling at 90 degrees to its direction.
+
+For simulations of even greater Reynolds number, divergence between the coarse and fine meshes was apparent, so the finer mesh was used for all remaining simulations.  Figure 3 depicts the fine mesh solution for Re = 5000, where convergence was found after 3.5s of physical simulation.
+
+\vspace{-2em}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{Results/streamfunction.Re5000.png}
+\caption{Streamfunction for $Re = 5000,\, 257x257\, grid ,\, t = 3.5s$}
+\end{center}
+\end{figure}
+\vspace{-2em}
+
+For this high Reynolds number case, the third eddy is now well defined.  Additionally, the first eddy can be seen to be developing multiple eddies within the space occupied by the original eddy.  These effects are attributable to the increasing effects of turbulence in the system, as Reynolds number increases.  Finally, as the viscous effects increase, the center of the main eddy continues to move toward the center of the cavity, and the flow at the corners outside of the eddies continues to circularize, with the exception of the upper-right corner where the flow makes the 90 degree turn with no eddy effects.  This is due to the high momentum of the freestream flow as it enters the cavity and overcomes the viscous effects.
+
+The final case, shown in Figure 4 was for Re = 10000.  Convergence to steady-state was observed at 5s of physical time, but steady-state behavior was noticed to be periodic within the eddy structures.
+\clearpage
+
+\vspace{-2em}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{Results/streamfunction.Re10000.1.png}
+\includegraphics[width=0.5\textwidth]{Results/streamfunction.Re10000.2.png}
+\caption{Streamfunction for $Re = 100,\, 129x129\, grid ,\, t = 28s, \,30s$}
+\end{center}
+\end{figure}
+\vspace{-2em}
+
+Over time, the bottom-left and top-left eddies can be see to alternate between single-eddy structures and dual-eddy structures, while the flow outside the eddies remains constant.  The overall magnitudes of the flow properties within the cavity remain similar to the lower Reynolds number cases, so it can be observed that the primary effect of increasing the Reynolds number is an increase in viscous characteristics of the flow, namely eddy size and location.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusion}
+The analysis detailed in this report demonstrates the effects of Reynolds number applied to lid-driven cavity flow. As Reynolds number is increased, viscous effects become more apparent.  These are manifested in location of the primary eddy that exists in the center of the cavity and in the corner eddies that grow in size and eventually contain smaller sub-eddies.  Finally, at high Reynolds numbers such as Re = 10000, the steady-state solution is observed to become periodic in the behavior of the corner eddies.  This is due to the unsteadiness created by turbulence.  Overall, this case study coupled with the OpenFOAM tutorial was an effected means for gaining familiarity with the solver and the linux environment.
+
+\section{References}
+\begin{description}
+\item[] 1. U Ghia, K. N Ghia, and C. T Shin. \emph{Journal of Computational Physics}, 48(3):387–411, 12 1982.
+\item[] 2. Charles-Henri Bruneau and Mazen Saad. \emph{Computers \& Fluids}, 35(3):326–348, 3 2006.
+\end{description}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% The bibliography is stored in an external database file
+% in the BibTeX format (file_name.bib).  The bibliography is
+% created by the following command and it will appear in this
+% position in the document. You may, of course, create your
+% own bibliography by using thebibliography environment as in
+%
+% \begin{thebibliography}{12}
+% ...
+% \bibitem{itemreference} D. E. Knudsen.
+% {\em 1966 World Bnus Almanac.}
+% {Permafrost Press, Novosibirsk.}
+% ...
+% \end{thebibliography}
+
+% Here's where you specify the bibliography style file.
+% The full file name for the bibliography style file
+% used for an ASME paper is asmems4.bst.
+%\bibliographystyle{asmems4}
+
+% Here's where you specify the bibliography database file.
+% The full file name of the bibliography database for this
+% article is asme2e.bib. The name for your database is up
+% to you.
+%\bibliography{asme2e}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\end{document}

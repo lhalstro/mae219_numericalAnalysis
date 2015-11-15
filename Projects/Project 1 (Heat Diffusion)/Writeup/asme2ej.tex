@@ -1,0 +1,321 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%% asme2ej.tex %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Template for producing ASME-format journal articles using LaTeX    %
+% Written by   Harry H. Cheng, Professor and Director                %
+%              Integration Engineering Laboratory                    %
+%              Department of Mechanical and Aeronautical Engineering %
+%              University of California                              %
+%              Davis, CA 95616                                       %
+%              Tel: (530) 752-5020 (office)                          %
+%                   (530) 752-1028 (lab)                             %
+%              Fax: (530) 752-4158                                   %
+%              Email: hhcheng@ucdavis.edu                            %
+%              WWW:   http://iel.ucdavis.edu/people/cheng.html       %
+%              May 7, 1994                                           %
+% Modified: February 16, 2001 by Harry H. Cheng                      %
+% Modified: January  01, 2003 by Geoffrey R. Shiflett                %
+% Use at your own risk, send complaints to /dev/null                 %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% use twocolumn and 10pt options with the asme2ej format
+\documentclass[twocolumn,10pt]{asme2ej}
+
+\usepackage{epsfig} %% for loading postscript figures
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{grffile}
+\usepackage{pdfpages}
+\usepackage{algpseudocode}
+%\usepackage{multicol}
+
+%% The class has several options
+%  onecolumn/twocolumn - format for one or two columns per page
+%  10pt/11pt/12pt - use 10, 11, or 12 point font
+%  oneside/twoside - format for oneside/twosided printing
+%  final/draft - format for final/draft copy
+%  cleanfoot - take out copyright info in footer leave page number
+%  cleanhead - take out the conference banner on the title page
+%  titlepage/notitlepage - put in titlepage or leave out titlepage
+%
+%% The default is oneside, onecolumn, 10pt, final
+
+\title{Case Study 1 -- 1D Unsteady Heat Transfer}
+
+%%% first author
+\author{Logan Halstrom
+    \affiliation{
+	PhD Graduate Student Researcher\\
+	Center for Human/Robot/Vehicle Integration and Performance\\
+	Department of Mechanical and Aerospace Engineering\\
+	University of California, Davis\\
+	Davis, California 95616\\
+    Email: ldhalstrom@ucdavis.edu
+    }
+}
+
+\begin{document}
+\maketitle
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Problem Description}
+
+This paper describes numerical methods for solving 1-dimensional unsteady heat transfer of a unit-length slab according to the governing equation:
+\begin{equation}
+\frac{\partial T}{\partial t} = \frac{\partial^2T}{\partial x^2} \mbox{ subject to } \left\{ \begin{array}{lll}
+        \mbox{$T(x, 0^-)= 0 $} & \mbox{for } &0 \leq x \leq 1 \\
+        \mbox{$T(0, t) = T(1, t) = 1$} & \mbox{for } &t > 0 \end{array} \right.
+\label{eq_DEF}
+\end{equation}
+
+Solutions for the temperature distribution within the slab were calculated using three methods:  the analytic solution of the governing second-order, homogeneous, linear partial differential equation, a Forward-Time, Centered-Space (FTCS) explicit numerical solution scheme, and a FTCS implicit numerical solution scheme.  All solutions were performed on the same grid with uniform spacing in x and time spacing defined by  $s = \frac{\alpha \Delta t}{\Delta x^2}$.  A parametric study of different time spacing and simulation times was run for the following parameters: \emph{s}= 1/6, 0.25, 0.5, 0.75 for \emph{t} = 0.03, 0.06, and 0.09, where \emph{t} is non-dimensional.  Numerical solutions were compared to the analytical solution by calculating the Root Mean Square (RMS) error:
+\begin{equation}
+\mbox{RMS} = \frac{1}{N^2}\sqrt{\sum\limits_{i=1}^N[T_i^n - T^*(x_i, t_n)]^2}
+\end{equation}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Solution Algorithms}
+
+\subsection{Analytic Scheme}
+The analytic solution to the governing equation (1) can be expressed as the following infinite series:
+\begin{equation}
+\begin{split}
+T^*(x,t) = 1 - \sum\limits_{k=1}^\infty \frac{4}{(2k-1)\pi} & \sin[(2k-1)\pi x] \circ \\
+		    &  \exp[-(2k-1)^2\pi^2t]
+\end{split}
+\end{equation}
+\noindent This was approximated in the solver as a finite sum with a very large number of terms, as show in pseudocode:
+\begin{description}
+\item[] \emph{for each x at t:}
+	\begin{description}
+	\item[] \emph{sum = 1}
+	\item[] \emph{for i from 1 to large number}
+		\begin{description}
+		\item[] \emph{sum = sum - infinite series ith term}
+		\end{description}
+	\item[] \emph{end for}
+	\item[] \emph{T(x) = sum}
+	\end{description}
+\item[] \emph{end for}
+\item[] \emph{return analytic temperature distribution T for the given time}
+\end{description}
+
+\subsection{Explicit Scheme}
+Discretizing the governing equation (1) according to the FTCS scheme results in the following discrete relation:
+\begin{equation}
+\frac{T_i^{k+1}-T_i^k}{\Delta t} \approx \frac{T_{i+1}^k - 2T_i^k + T_{i-1}^k}{\Delta x^2}.
+\label{eq_EXPDISCRETE}
+\end{equation}
+\noindent An explicit solution can be derived by solving for the temperature at the next time step:
+\begin{equation}
+T_i^{k+1} = sT_{i+1}^k +(1- 2s)T_i^k + sT_{i}^k
+\label{eq_EXPSOLN}
+\end{equation}
+\noindent where $s = \frac{\alpha \Delta t}{\Delta x^2}$.  This equation can then be solved in a step-wise fashion according to the following pseudocode:
+\begin{description}
+\item[] \emph{while time $\leq$ end time:}
+	\begin{description}
+	\item[] \emph{for i in x:}
+		\begin{description}
+		\item[] $T_i^{k+1} = sT_{i+1}^k +(1- 2s)T_i^k + sT_{i}^k$
+		\end{description}
+	\item[] \emph{end for}
+	\item[] \emph{increment time by dt}
+	\item[] \emph{Store new temperature solution for next step}
+	\end{description}
+\item[] \emph{end while}
+\item[] \emph{return explicit numeric temperature distribution}
+\end{description}
+
+\subsection{Implicit Scheme}
+The governing equation (1) can also be solved implicitly by discretizing with the central difference in space taken at the forward step in time:
+\begin{equation}
+\frac{T_i^{k+1}-T_i^k}{\Delta t} \approx \frac{T_{i+1}^{k+1} - 2T_i^{k+1} + T_{i-1}^{k+1}}{\Delta x^2}.
+\label{eq_IMPDISCRETE}
+\end{equation}
+\noindent The equation can then be placed in tridiagonal form and solved using a Tridiagonal Matrix Algorithm (TMA):
+\begin{equation}
+ -sT_{i+1}^{k+1} +(1+ 2s)T_i^{k+1} - sT_{i}^{k+1} = T_i^{k}
+\label{eq_IMPSOLN}
+\end{equation}
+\noindent In this scheme, the entire system for all \emph{x} and all \emph{t} is solved simultaneously by representing the three diagonals of the system with three vectors, where each third term is successively eliminated, finally solving for the last term and allowing the solution of all previous terms:
+\begin{description}
+\item[] \emph{Initialize 3 diagonal vectors according to BC's}
+\item[] $a_i = -s$, $b_i = 1 + 2s$, $c_i = -s$, $d_i =  T_i^{k}$ for $1 \l i \l n$
+\item[] \emph{while time $\leq$ end time:}
+	\begin{description}
+	\item[] Solve tridiagonal system: $aT_{i+1}^{k+1} + bT_i^{k+1} + cT_{i}^{k+1} = d$
+	\item[] \emph{increment time by dt}
+	\item[] \emph{Store new temperature solution for next step}
+	\end{description}
+\item[] \emph{end while}
+\item[] \emph{return implicit numeric temperature distribution}
+\end{description}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Results}
+
+%%%TABLES
+Variation between solution methods was quantified using an RMS error comparison.  RMS error of the explicit and implicit numeric solutions compared to the analytic solution is tabulated below.
+
+%\vspace{-1em}
+
+\begin{table}[h]
+%\caption{Figure and table captions do not end with a period}
+\begin{center}
+\label{table_ASME}
+\begin{tabular}{|c | c c c|}
+\hline
+$RMS_e$  & \textbf{t = 0.03} & \textbf{t = 0.06} & \textbf{s = 0.09}\\
+\hline
+\textbf{s = $\frac{1}{6}$} & 4.17E-3 & 1.00E-3 & 2.22E-3\\
+\textbf{s = 0.25}         	  & 1.77E-3 & 1.30E-3 & 1.07E-3\\
+\textbf{s = 0.5} 		  & 5.25E-3 & 3.72E-3 & 3.04E-3\\
+\textbf{s = 0.75} 		  & 4.15E+2 & 1.78E+7 & 9.82E+11\\
+\hline
+\end{tabular}
+\caption{RMS error between explicit and analytic solutions}
+\end{center}
+\end{table}
+
+\vspace{-4em}
+
+\begin{table}[h]
+%\caption{Figure and table captions do not end with a period}
+\begin{center}
+\label{table_ASME}
+\begin{tabular}{|c | c c c|}
+\hline
+$RMS_i$  & \textbf{t = 0.03} & \textbf{t = 0.06} & \textbf{s = 0.09}\\
+\hline
+\textbf{s = $\frac{1}{6}$} & 3.33E-3 & 3.20E-4 & 9.09E-4\\
+\textbf{s = 0.25}         	  & 2.16E-3 & 5.83E-4 & 8.99E-4\\
+\textbf{s = 0.5} 		  & 3.63E-3 & 1.47E-3 & 1.88E-3\\
+\textbf{s = 0.75} 		  & 5.18E-3 & 2.37E-3 & 2.85E-3\\
+\hline
+\end{tabular}
+\caption{RMS error between implicit and analytic solutions}
+\end{center}
+\end{table}
+
+\vspace{-1em}
+
+%%%FIGURES
+Solutions for the temperature distribution at various times are plotted in the following figures.  Each figure compares all three solution methods at a given time and for a specific time step size.
+
+%\clearpage
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{Results/PJ1_s0.166_t0.03.pdf}
+\includegraphics[width=0.5\textwidth]{Results/PJ1_s0.25_t0.03.pdf}
+\includegraphics[width=0.5\textwidth]{Results/PJ1_s0.5_t0.03.pdf}
+\includegraphics[width=0.5\textwidth]{Results/PJ1_s0.75_t0.03.pdf}
+\caption{Temperature Distributions for $t = 0.03$}
+\end{center}
+\end{figure}
+
+\clearpage
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{Results/PJ1_s0.166_t0.06.pdf}
+\includegraphics[width=0.5\textwidth]{Results/PJ1_s0.25_t0.06.pdf}
+\includegraphics[width=0.5\textwidth]{Results/PJ1_s0.5_t0.06.pdf}
+\includegraphics[width=0.5\textwidth]{Results/PJ1_s0.75_t0.06.pdf}
+\caption{Temperature Distributions for $t = 0.06$}
+\end{center}
+\end{figure}
+
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{Results/PJ1_s0.166_t0.09.pdf}
+\includegraphics[width=0.5\textwidth]{Results/PJ1_s0.25_t0.09.pdf}
+\includegraphics[width=0.5\textwidth]{Results/PJ1_s0.5_t0.09.pdf}
+\includegraphics[width=0.5\textwidth]{Results/PJ1_s0.75_t0.09.pdf}
+\caption{Temperature Distributions for $t = 0.09$}
+\end{center}
+\end{figure}
+
+\clearpage
+\section{Discussion}
+A number of characteristics of 1D heat transfer are apparent when observing the temperature distribution figures as a function of simulation time.  At any given time, the general shape of the distribution is parabolic, with the boundaries at the greatest temperature and the center of the slab at the lowest, being the furthest from the source of heat.  As time progresses, the parabola becomes flatter at temperatures throughout the rod equalize.  The flattening of the temperature profile proceeds at a slower rate at later times as the temperature differential decreases and the rate of heat transfer decreases accordingly.
+
+The accuracy of the numeric solution methods can be assessed both visually in the superimposed figures and quantitatively through the RMS error data.  For all cases except the largest time step,  all three solution curves appear almost identical, suggesting low error in either numeric method.  This is confirmed in the RMS data which shows error on the order of 0.001 with respect to non-dimensional temperature.  Furthermore, there is little difference in error between the explicit and implicit solutions for all stable time steps, suggesting both methods are accurate approximations of the analytic solution for time steps where $s = \frac{\alpha \Delta t}{\Delta x^2} \leq 0.5$ (Because grid size is fixed, changes in s are directly proportional to changes in time step, so variations in parameters due to variations in s will be considered to be dependent on the change in time step only.).  The exception is that the explicit solution becomes unstable at the largest time step.  This instability is due to error propagation in the explicit solution scheme.  At each point, the explicit scheme makes an approximation of the solution for the next point.  As the solution steps further on, the error compounds.  As the time step is increased, the extrapolation error of the scheme is also increased, so that at some point, the extrapolations become too inaccurate to allow for a successful extrapolation at the next point, and the solution becomes instable.  Thus, the explicit solution method is best suited for simulations that require high time step resolution to uncover transient unsteadiness since it is less computationally intensive than the implicit method, which must solve the entire tridiagonal system for every time step. However, for simulations where the transient state is of less concern, the implicit method is more well suited because it will function with comparable accuracy and larger time steps at which the explicit method would become unstable, converging long simulations in fewer iterations.
+
+Regarding the RMS error behavior of both solution methods with respect to simulation time, it can be determined that the numeric solutions become more accurate in comparison to the analytic method as simulation time increases, which can be attributed to the change in heat transfer rate with simulation time.  At the beginning of the simulation, the temperature differential is the greatest, causing the fastest changes in temperature distribution, making it more difficult for the finite, numeric solutions to capture the behavior of the second-order partial differential equation.  As time increases, the differential decreases, and the numerical solutions can better match the changes.
+
+Using the parametric data for RMS error, optimization of both numeric methods can be performed.  For both cases, the most accurate solution is, as expected, that with the smallest time step.  However, considering the next greatest time step for $s = 0.25$,  little to no increase in RMS error is observed, suggesting that the simulation may be run with this greater time step and achieve the same accuracy.  
+
+\section{Conclusion}
+The analysis detailed in this report demonstrates that both explicit and implicit solutions to the govering equation for one dimensional heat transfer are acceptable approximations of the analytic solution for small enough time steps.  At greater time steps, the implicit method was found to be slightly less accurate but still funcitonal, while the explicit solution became unstable.  Usage of the explicit method is best suited for simulations of short-duration, transient heat transfer, where the time step resolution is very high, and usage of the implict method is better suited for longer simulations where a greater time step will help reduce the number of iterations in a given simulaiton.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% The bibliography is stored in an external database file
+% in the BibTeX format (file_name.bib).  The bibliography is
+% created by the following command and it will appear in this
+% position in the document. You may, of course, create your
+% own bibliography by using thebibliography environment as in
+%
+% \begin{thebibliography}{12}
+% ...
+% \bibitem{itemreference} D. E. Knudsen.
+% {\em 1966 World Bnus Almanac.}
+% {Permafrost Press, Novosibirsk.}
+% ...
+% \end{thebibliography}
+
+% Here's where you specify the bibliography style file.
+% The full file name for the bibliography style file
+% used for an ASME paper is asmems4.bst.
+%\bibliographystyle{asmems4}
+
+% Here's where you specify the bibliography database file.
+% The full file name of the bibliography database for this
+% article is asme2e.bib. The name for your database is up
+% to you.
+%\bibliography{asme2e}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\clearpage
+%\onecolumn
+%\appendix       %%% starting appendix
+%\section*{Appendix A: Python Code}
+%
+%\begin{figure}[b]
+%\begin{center}
+%\includegraphics[page=1,width=0.93\textwidth]{../Karasinski - Case Study 1.pdf}
+%\end{center}
+%\end{figure}
+%
+%\begin{figure}[htb]
+%\begin{center}
+%\includegraphics[page=2,width=0.93\textwidth]{../Karasinski - Case Study 1.pdf}
+%\end{center}
+%\end{figure}
+%
+%\begin{figure}[htb]
+%\begin{center}
+%\includegraphics[page=3,width=0.93\textwidth]{../Karasinski - Case Study 1.pdf}
+%\end{center}
+%\end{figure}
+%
+%\begin{figure}[htb]
+%\begin{center}
+%\includegraphics[page=4,width=0.93\textwidth]{../Karasinski - Case Study 1.pdf}
+%\end{center}
+%\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\section*{Appendix B: Head of Second Appendix}
+%\subsection*{Subsection head in appendix}
+%The equation counter is not reset in an appendix and the numbers will
+%follow one continual sequence from the beginning of the article to the very end as shown in the following example.
+%\begin{equation}
+%a = b + c.
+%\end{equation}
+
+\end{document}

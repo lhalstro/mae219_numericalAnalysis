@@ -1,0 +1,417 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%% asme2ej.tex %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Template for producing ASME-format journal articles using LaTeX    %
+% Written by   Harry H. Cheng, Professor and Director                %
+%              Integration Engineering Laboratory                    %
+%              Department of Mechanical and Aeronautical Engineering %
+%              University of California                              %
+%              Davis, CA 95616                                       %
+%              Tel: (530) 752-5020 (office)                          %
+%                   (530) 752-1028 (lab)                             %
+%              Fax: (530) 752-4158                                   %
+%              Email: hhcheng@ucdavis.edu                            %
+%              WWW:   http://iel.ucdavis.edu/people/cheng.html       %
+%              May 7, 1994                                           %
+% Modified: February 16, 2001 by Harry H. Cheng                      %
+% Modified: January  01, 2003 by Geoffrey R. Shiflett                %
+% Use at your own risk, send complaints to /dev/null                 %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% use twocolumn and 10pt options with the asme2ej format
+\documentclass[twocolumn,10pt]{asme2ej}
+
+\usepackage{epsfig} %% for loading postscript figures
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{grffile}
+\usepackage{pdfpages}
+\usepackage{algpseudocode}
+%\usepackage{multicol}
+
+%% The class has several options
+%  onecolumn/twocolumn - format for one or two columns per page
+%  10pt/11pt/12pt - use 10, 11, or 12 point font
+%  oneside/twoside - format for oneside/twosided printing
+%  final/draft - format for final/draft copy
+%  cleanfoot - take out copyright info in footer leave page number
+%  cleanhead - take out the conference banner on the title page
+%  titlepage/notitlepage - put in titlepage or leave out titlepage
+%
+%% The default is oneside, onecolumn, 10pt, final
+
+\title{Case Study 4 -- Numeric Solutions of 1-D Transport Equation}
+
+%%% first author
+\author{Logan Halstrom
+    \affiliation{
+	PhD Graduate Student Researcher\\
+	Center for Human/Robot/Vehicle Integration and Performance\\
+	Department of Mechanical and Aerospace Engineering\\
+	University of California, Davis\\
+	Davis, California 95616\\
+    Email: ldhalstrom@ucdavis.edu
+    }
+}
+
+\begin{document}
+\maketitle
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Problem Description}
+
+This case study examines the behavior of various numerical methods for solving partial differential equations applied to the 1-dimensional unsteady, linear transport equation:
+
+\begin{equation}
+\frac{\partial \phi}{\partial t} + u\frac{\partial \phi}{\partial x} = D\frac{\partial^2 \phi}{\partial x^2}
+\end{equation}
+
+\noindent where $\phi$ is the transported scalar (i.e. mass, temperature, etc.) , $u=0.2\,m/s$ is the flow velocity and $D=0.005\,m^2/s$ is the diffusion coefficient.  Solutions for this model equation were bounded in space by $x\in[0,L\,(L=1m)]$ and in time by $t\in[0,\tau],\,(\tau=1/k^2D)$.  The solutions are subjected to periodic boundary conditions and the following initial condition, resulting in the followig analytic solution:
+
+\begin{equation}
+\phi(x,0) =\sin(kx)
+\end{equation}
+\vspace{-4em}
+\begin{equation}
+\Phi(x,t) = e^{-k^2Dt}\sin[k(x-ut)]
+\end{equation}
+
+\noindent where $k=2\pi/L$.  The results of each numeric solution were compared to the analytic solution to assess accuracy.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Numerial Solution Methods}
+
+Four different numeric methods were considered in this analysis and each were simulated on a mesh defined by the following sets of Courant and diffusion numbers ($C = u\Delta t/\Delta x$ and $s = D\Delta t/\Delta x^2$).\\
+\newline
+$(C,s) \in [0.1,0.25),\, (0.5,0.25),\, (2,0.25),\, (0.5,0.5),\, (0.5,1)]$
+
+\subsection{FTCS Scheme}
+
+The first numerical method employed was the explicit Forward Time Central Space (FTCS) differencing method.  Central differencing was applied to both the convective and diffusive flux to produce the following explicit, discretized equation solved according to the associated stencil in Fig~\ref{FTCS}:
+
+\begin{equation}
+\begin{split}
+\frac{\phi^{n+1}_{i} - \phi^{n}_{i}}{\Delta t} + u\frac{\phi^{n}_{i+1} - \phi^{n}_{i-1}}{2\Delta x} = D\frac{\phi^{n}_{i+1} -   2\phi^{n}_{i} + \phi^{n}_{i-1}}{\Delta x^2}\\
+\phi^{n+1}_{i} = s(\phi^{n}_{i+1} - 2\phi^{n}_{i} + \phi^{n}_{i-1})+ \phi^{n}_{i} - \frac{C}{2}(\phi^{n}_{i+1} - \phi^{n}_{i-1})
+\end{split}
+\end{equation}
+
+\vspace{-4em}
+\begin{figure}[thb]
+\begin{center}
+\includegraphics[width=0.45\textwidth]{Images/Stencils_FTCS.pdf}
+\caption{Stencil for FTCS scheme}
+\label{FTCS}
+\end{center}
+\end{figure}
+
+Since this was an explicit method, the results from the previous solution were used to calculate the new solution for each time step according to the above stencil.  Periodic boundary conditions were imposed by connecting the 1-dimensional domain at the endpoints, effetively making the first point the same as the last.  Thus, $\phi^{n+1}_{1}=\phi^{n+1}_{N}$ and when solving for $\phi^{n+1}_{N}$, $\phi^{n}_{2}$ is used for the $i+1$ term.  This form of boundary condition is commonly used to represent large systems that approach infinity at the boundaries.  The stability criteria of this scheme can be stated in terms of the grid size and the time step size.  For numeric stability:   $\Delta x \leq \frac{2D}{u} \mbox{ and } \Delta t \leq \frac{\Delta x^2}{2D}$.
+
+\subsection{Upwind Scheme}
+
+The next method employed was a second-order upwinding finite volume method for the convective flux, explicit forward differencing in time, and central differencing, as before, for the diffusive flux.  Upwind schemes are useful for solving hyperbolic partial differential equations and use an adaptive stencil that adjusts according to the direction of information propagation in the flowfield.  For this exercise, flow was only in the positive direction, but backward flow capability was built in to the upwind scheme for completeness.  Discretizing Equation 1 for this scheme results in the in the following equation solved according to the following stencil in Fig~\ref{Upwind}:
+
+\begin{equation}
+\begin{split}
+&\phi^{n+1}_{i} =   s(\phi^{n}_{i+1} - 2\phi^{n}_{i} + \phi^{n}_{i-1}) + \phi^{n}_{i} \\ 
+	  - \frac{C}{2}&\left\{ \begin{array}{lll}
+        \mbox{$3\phi^{n}_{i} - 4\phi^{n}_{i+1} + \phi^{n}_{i-2}$} & \mbox{for } &u \geq 0 \\ 
+        \mbox{$-\phi^{n}_{i+2} + 4\phi^{n}_{i+1} - 3\phi^{n}_{i}$} & \mbox{for } &u < 0 \end{array} \right.
+\end{split}
+\end{equation}
+
+\vspace{-3em}
+\begin{figure}[thb]
+\begin{center}
+\includegraphics[width=0.45\textwidth]{Images/Stencils_Upwind.pdf}
+\caption{Stencil for Upwind scheme}
+\label{Upwind}
+\end{center}
+\end{figure}
+
+The upwind scheme stencil can take on two forms depending on the flow direction.  For positive direction flow, the stencil will utilize the three nodes connected by solid lines for a second-order backward difference.  For negative flow direction, the stencil will instead utilize the nodes connected by the dashed line in a second-order forward difference.  This ensures that information is always received from the upstream direction, as is characteristic of systems governed by hyperbolic equations.  Numeric stability is determined via the Courant-Friedrichs-Lewy number and Diffusion number:   $C + 2s \leq 1$
+
+\subsection{Trapezoidal (Crank-Nicholson) Scheme}
+
+The third method utilized was the trapezoidal method, which utilized a weighted average of the explicit and implicit central differencing methods.  A weight of one half was selected to use a true average and to create the Crank-Nicholson scheme, discretized as follows in tridiagonal form with the associated stencil in Fig~\ref{Trapz}:
+
+\begin{equation}
+\begin{split}
+&\theta\Big[\big(C-s\big)\phi^{n+1}_{i+1} + \big(\frac{1}{\theta}+2s\big)\phi^{n+1}_{i} + \big(-s-C\big)\phi^{n+1}_{i-1}\Big]\\
+ = (1&-\theta)\Big[\big(-C+s\big)\phi^{n}_{i+1} + \big(\frac{1}{1-\theta}-2s\big)\phi^{n}_{i} + \big(s+C\big)\phi^{n}_{i-1}\Big]
+\end{split}
+\end{equation}
+
+%\vspace{-3em}
+\begin{figure}[thb]
+\begin{center}
+\includegraphics[width=0.45\textwidth]{Images/Stencils_Trapezoidal.pdf}
+\caption{Stencil for Trapezoidal scheme}
+\label{Trapz}
+\end{center}
+\end{figure}
+
+\noindent where $\theta = 1/2$. Because this is an implicit method, an exact solution of the tridiagonal system presented in Eqn~\ref{TriPerSys} is required.  It is also imprtant to not that since this is an implicit method, it is unconditionally stable for all cases.
+
+\begin{equation}
+\begin{split}
+\begin{bmatrix}
+   { b } & { c } & {   }  & {   } & {   } & {   }& { a } \\
+   { a } & { b } & { c }  & {   } & {   }  & {   } & {   }\\
+   {   } &  { a } & { b } & { c }  & {   }  & {   } & {   }\\
+   {   } & {   } & \ddots & \ddots  & \ddots & {   } &  {   } \\
+   {   } & {   } & {   } & { a } & {b  } & {c  } & {   }\\
+   {   } & {   } & {   } & {   } & {a  } & {b  } & { c }\\
+   { c } & {   } & {   } & {   } & {   }  &  { a }  & { b }\\
+\end{bmatrix}
+\begin{bmatrix}
+   {\phi_1^{n+1} }  \\
+   {\phi_2^{n+1 }}  \\
+   {\phi_3^{n+1} }  \\
+   \vdots   \\
+   \vdots   \\
+   {\phi_N^{n+1} }  \\
+\end{bmatrix}
+& =
+\begin{bmatrix}
+   {RHS_1 }  \\
+   {RHS_2 }  \\
+   {RHS_3 }  \\
+   \vdots   \\
+   \vdots   \\
+   {RHS_N }  \\
+\end{bmatrix}
+\end{split}
+\label{TriPerSys}
+\end{equation}
+
+\noindent where $a = -s-C,\, b = 1/\theta+2s,\, c=s+C$ and $RHS$ is the right hand side of the discretized equation for this scheme.
+\noindent The diagram shows that the system is a sparse matrix, so a periodic tridiagonal matrix solver using the Cyclic Thomas Algorithm was developed to provide a computationally efficient method of solving the linear system that is superior to standard solutions by Gaussian elimination.  The periodic boundary condition manifests itself in the off-diagonal corners making a standard TDMA solver insufficient.  Instead, the system must be solved by splitting the matrix into a tridiagonal sub-matrix added to a sparse additional submatrix as shown:  
+
+\begin{equation}
+\begin{split}
+\begin{bmatrix}
+   { b-a } & { c } & {   }  & {   } & {   } & {   }& { a } \\
+   { a } & { b } & { c }  & {   } & {   }  & {   } & {   }\\
+   {   } &  { a } & { b } & { c }  & {   }  & {   } & {   }\\
+   {   } & {   } & \ddots & \ddots  & \ddots & {   } &  {   } \\
+   {   } & {   } & {   } & { a } & {b  } & {c  } & {   }\\
+   {   } & {   } & {   } & {   } & {a  } & {b  } & { c }\\
+   { c } & {   } & {   } & {   } & {   }  &  { a }  & { b-c }\\
+\end{bmatrix}
+& +
+%\begin{bmatrix}
+%   { a } & {  } & {   }  & {   } & {   } & {   }& { a } \\
+%   {  } & {  } & {  }  & {   } & {   }  & {   } & {   }\\
+%   {   } &  {  } & {  } & {   }  & {   }  & {   } & {   }\\
+%   {   } & {   }  & {   }  & {   }   & {   } & {   } &  {   } \\
+%   {   } & {   } & {   } & {  } & {  } & {  } & {   }\\
+%   {   } & {   } & {   } & {   } & {  } & {  } & {  }\\
+%   { c } & {   } & {   } & {   } & {   }  &  {  }  & { c }\\
+%\end{bmatrix}
+\begin{bmatrix}
+   { a }\\
+   {  } \\
+   {   }\\
+   {   }\\
+   {   }\\
+   {   }\\
+   { c }\\
+\end{bmatrix}
+\begin{bmatrix}
+   { 1 } & {0  } & {   }  & \hdots & {   } & {  0 }& { 1 } \\
+\end{bmatrix}
+=A + uv^T
+\end{split}
+\end{equation}
+
+\noindent The resulting system is then solved according to the Sherman-Morrison scheme:
+
+%\begin{equation}
+\begin{enumerate}
+	\item \textbf{Solve with TDMA:} $Az=u$ \textbf{and} $Ay=RHS$
+	\item  \textbf{Sherman-Morrison:} $\phi = y - \frac{1}{1+v^Tz}zv^Ty$
+\end{enumerate}
+%\end{equation}
+
+\noindent NOTE:  A computational efficiency study was performed in this case study in which wall clock times for the solution of the tridiagonal system using both the Cyclic Tridiagonal Matrix Algorithm and standard Gaussian Elimination which demonstrated that, in practice, the CTDMA solver is $30-50\%$ slower than Gaussian Elimination for the prescribed cases.  This unexpected result may be due to the small size of the systems being solved for this case study.  In actual practice, realistic systems will be orders of magnitude larger than these test cases and for these applications, the CTDMA solver should prove to be more efficient.
+ 
+
+\subsection{QUICK Scheme}
+
+The final method investigated in this analysis is the higher-order Quadratic Upstream Interpolation for Convective Kinematics (QUICK) scheme.  The solution was treated with explicit forward differencing in time, central differencing in space for the diffusive flux, and positive direction QUICK scheme for the convective flux.  This method improves on the upwind scheme by interpolating nodal relationships with a quadratic function, rather than a simple linear relationship, as is demonstrated in Fig~\ref{QUICK}:
+
+\begin{figure}[thb]
+\begin{center}
+\includegraphics[width=0.45\textwidth]{Images/QUICK_Diagram.jpg}
+\caption{Nodal diagram for QUICK scheme}
+\label{QUICK}
+\end{center}
+\end{figure}
+
+Discretizing the transport equation as previously described, we produce:
+
+\begin{equation}
+\begin{split}
+&\frac{\phi^{n+1}_{P} - \phi^{n}_{P}}{\Delta t} + \frac{u_e\phi^{n}_{e} - u_w\phi^{n}_{w}}{\Delta x} = D\frac{\phi^{n}_{E} -   2\phi^{n}_{P} + \phi^{n}_{W}}{\Delta x^2}\\
+&\quad \phi^{n+1}_{i} = s(\phi^{n}_{i+1} - 2\phi^{n}_{i} + \phi^{n}_{i-1})+ \phi^{n}_{i}\\
+& \quad \;\; - C(\frac{3}{8}\phi^{n}_{i+1} + \frac{3}{8}\phi^{n}_{i} - \frac{7}{8}\phi^{n}_{i-1} + \frac{1}{8}\phi^{n}_{i-2}) + \phi^{n}_{i}
+\end{split}
+\end{equation}
+
+Like the upwind scheme, the QUICK scheme stencil adjusts depending on the direction of flow so that information is passed down from the upstream direction.  For this analysis, only the positive direction scheme was implemented.  The QUICK scheme can be show to be significantly more accurate than upwinding as under and overshooting of the exact solution is reduced by the quadratic fits.  Stability of the QUICK scheme is assessed as follows:  $C \leq min[2-4s, \sqrt{2s}]$
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\clearpage
+\section{Results and Discussion}
+
+%%%FIGURES
+From the previously described stability criteria, stability for each method applied to the prescribed test cases can be summarized as follows in Table~\ref{Stability}.
+
+\begin{table}[htb]
+%\caption{Figure and table captions do not end with a period}
+\begin{center}
+\label{Stability}
+\begin{tabular}{|c | c c c c|}
+\hline
+{} & \textbf{FTCS} & \textbf{Upwind} & \textbf{Trapezoidal} & \textbf{QUICK} \\
+\hline
+\textbf{C=0.10, s=0.25} & Y & Y & Y & Y \\
+\textbf{C=0.50, s=0.25} & Y & N & Y & Y \\
+\textbf{C=2.00, s=0.25} & N & N & Y & N \\
+\textbf{C=0.50, s=0.50} & Y & N & Y & N \\
+\textbf{C=0.50, s=1.00} & N & N & Y & N \\
+\hline
+\end{tabular}
+\caption{Stability assessment of each method for the prescribed cases}
+\end{center}
+\end{table}
+
+As the table demonstrates, the only case for which all methods yielded stable results was the first.  Solutions of the transport equation for all methods for this case and the error of these solutions compared to the analytic solution for this case are plotted in Fig~\ref{CasesPlot}.
+
+%%\vspace{-2em}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{Results/AllCases_t5.07_C0.10_s0.25.pdf}
+\includegraphics[width=0.5\textwidth]{Results/AllCases_Error_t5.07_C0.10_s0.25.pdf}
+\caption{1-D transport equation solutions for all methods and error compared to analytic solution for C=0.10 and s=0.25}
+\label{CasesPlot}
+\end{center}
+\end{figure}
+%%\vspace{-2em}
+
+The plots of the actual solution shows good correlation for all cases, but the error plots show more apparent differences between the methods.  First, it is obvious that the trapezoidal method is the least accurate of the four for this case, while the errors for the explicit methods are much more comparable.  This assessment is further supported in Table~\ref{RMStable}, which presents the RMS error of each method compared to the analytic solution.
+
+\begin{table}[htb]
+%\caption{Figure and table captions do not end with a period}
+\begin{center}
+\label{RMStable}
+\begin{tabular}{|c | c c c c|}
+\hline
+{} & \textbf{FTCS} & \textbf{Upwind} & \textbf{Trapz} & \textbf{QUICK} \\
+\hline
+\textbf{Case 1} & 5.3e-03 & 7.1e-03 & 0.021 & 6.8e-03 \\
+\textbf{Case 2} & 0.164 & 0.212 & 0.039 & 0.171 \\
+\textbf{Case 3} & 5.761 & 25.435 & 0.304 & 8.50 \\
+\textbf{Case 4} & 0.078 & 5.270e+22 & 0.017 & 2.9e+10 \\
+\textbf{Case 5} & 8.2e+60 & 1.1e+97 & 0.015 & 9.0e+83 \\
+\hline
+\end{tabular}
+\caption{RMS error compared to analytic solution for all cases}
+\end{center}
+\end{table}
+%\vspace{-2em}
+
+For this first case, the error of the trapezoidal method is an order of magnitude greater than the explicit schemes.  The QUICK and upwind schemes can be seen to have almost identical error, which can be expected for this case where the fine mesh spacing reduces the quadratic advantages of the QUICK method.  The smallest error is for this case is attributed to the FTCS scheme, which is most likely, again, a function of the small grid spacing and time step size.  For the next case, with both a larger time step and mesh spacing, the errors of all methods are seen to increase.  The greatest error is for the upwinding scheme, as this method is unstable for this case.  Upwinding is followed by FTCS and QUICK, which have errors on the same order as upwinding.  This is because these explicit solutions are at the edge of their stable region and are beginning to go unstable.  The smallest error is attributed to the trapezoidal method, which proves to be the most accurate for coarser meshes as it is inherently stable.  
+
+%%\vspace{-2em}
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{Results/AllCases_t5.07_C0.50_s1.00.pdf}
+\caption{Unstable case for Upwind and Quick methods C=0.50 and s=1.00}
+\label{Unstable}
+\end{center}
+\end{figure}
+%\vspace{-2em}
+
+\noindent For the remaining cases, the error for the explicit methods becomes exponentially worse as the schemes become increasingly unstable.  For reference, Fig~\ref{Unstable} demonstrates an unstable case for the upwinding and QUICK methods.  The error of the upwinding method is much greater in magnitude than the other methods, so its shape dominates the plot.
+Finally, the order of accuracy of each method with respect to the dimensions of space and time was assessed by finding the slope of log-log plots of error vs. grid size as shown in Fig~\ref{OrderAccuracy}:
+
+%%\vspace{-2em}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{Results/MeshAcc_Log_QUICK_t5.07_dt0.0250-0.07_n5..pdf}
+\includegraphics[width=0.5\textwidth]{Results/TimeAcc_Log_FTCS_t5.07_dt0.0050-0.06_n5..pdf}
+\caption{Log-log plots of error vs. time and mesh spacing demonstrating actual order of accuracy for selected methods}
+\label{OrderAccuracy}
+\end{center}
+\end{figure}
+%%\vspace{-2em}
+
+\clearpage
+The results of this analysis for all methods is summarized in Table~\ref{OrderAccuracyTable}, which shows good correlation with the expected results. 
+
+\begin{table}[htb]
+%\caption{Figure and table captions do not end with a period}
+\begin{center}
+\label{OrderAccuracyTable}
+\begin{tabular}{|c | c c c c|}
+\hline
+{} & \textbf{FTCS} & \textbf{Upwind} & \textbf{Trapz} & \textbf{QUICK} \\
+\hline
+\textbf{Space} & $2^{nd}$ & $1^{st}$ & $2^{nd}$ & $2^{nd}$ \\
+\textbf{Time} & $1^{st}$ & $0.5^{th}$ & $1^{st}$ & $1^{st}$ \\
+\hline
+\end{tabular}
+\caption{Order of accuracy of each method with respect to space and time calculated from slope of log-log plot}
+\end{center}
+\end{table}
+
+ \noindent For the FTCS scheme, second-order accuracy in space was seen in accordance with the central differencing scheme and first-order accuracy in time was observed as expected for an explicit forward difference time scheme.  The upwind scheme saw a drop in special accuracy to first-order, as this method utilized forward differencing in space rather than central differencing.  The half order accuracy in time may also be due to this lower-order method of differencing.  The trapezoidal method was shown to be second-order accurate in space, which is expected given that central differencing is applied to both the diffusive and the convective flux. However, the trapezoidal method is only first-order accurate in time, which is again due to the first-order difference in time of both of the averaged explicit and implicit schemes.  Finally, the quick scheme was shown to be second-order accurate in space, as expected, and first-order accurate in time.  The improvement on the upwind scheme may be due to the quadratic nature of this method.
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\clearpage
+\section{Conclusion}
+The analysis performed in this case study investigated the accuracy and stability behavior of multiple numeric methods applied to the linear partial differential 1-D transport equation.  It was shown that explicit methods like FTCS achieved greater accuracy for smaller time and grid spacing than the implicit tridiagonal methods, but that the implicit method became the most accurate of the methods with coarser grids, as the explicit methods became unstable.  Thus, if it is necessary to use a coarse grid, the Crank-Nicholson scheme is recommended as an inherently stable method and as a method superior in time accuracy.  However, for finer meshes, the explicit schemes offer more computationally efficient solutions to the same equation.  For this study, the FTCS method was shown to be the most accurate of the explicit methods, due to its second-order nature and central differencing.  One might expect the QUICK method to be of the greatest accuracy as it is a higher-order method, but the scheme implemented in this case study was very minimal, which may have reduced its order of accuracy.  The FTCS method was shown to be more accurate than first-order upwinding, but the upwind scheme holds the advantage of utilizing information only from the upstream flow field and is thus better suited for solving hyperbolic equations efficiently.  The QUICK scheme is an improvement on the upwind scheme, and thus offers the accuracy of the FTCS scheme with the efficiency of the upwind scheme.  Future improvements could include increasing the order of accuracy of the differencing schemes for all of the explicit methods and also applying the upwinding and QUICK schemes to the diffusive flux as well as the convective flux.  These improvements should yield a higher-order QUICK method more representative of a scheme that would be used in industry applications of computational fluid dynamics.
+
+%\section{References}
+%\begin{description}
+%\item[] 1. U Ghia, K. N Ghia, and C. T Shin. \emph{Journal of Computational Physics}, 48(3):387–411, 12 1982.
+%\item[] 2. Charles-Henri Bruneau and Mazen Saad. \emph{Computers \& Fluids}, 35(3):326–348, 3 2006.
+%\end{description}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% The bibliography is stored in an external database file
+% in the BibTeX format (file_name.bib).  The bibliography is
+% created by the following command and it will appear in this
+% position in the document. You may, of course, create your
+% own bibliography by using thebibliography environment as in
+%
+% \begin{thebibliography}{12}
+% ...
+% \bibitem{itemreference} D. E. Knudsen.
+% {\em 1966 World Bnus Almanac.}
+% {Permafrost Press, Novosibirsk.}
+% ...
+% \end{thebibliography}
+
+% Here's where you specify the bibliography style file.
+% The full file name for the bibliography style file
+% used for an ASME paper is asmems4.bst.
+%\bibliographystyle{asmems4}
+
+% Here's where you specify the bibliography database file.
+% The full file name of the bibliography database for this
+% article is asme2e.bib. The name for your database is up
+% to you.
+%\bibliography{asme2e}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\end{document}

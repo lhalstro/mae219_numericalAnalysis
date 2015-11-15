@@ -1,0 +1,299 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%% asme2ej.tex %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Template for producing ASME-format journal articles using LaTeX    %
+% Written by   Harry H. Cheng, Professor and Director                %
+%              Integration Engineering Laboratory                    %
+%              Department of Mechanical and Aeronautical Engineering %
+%              University of California                              %
+%              Davis, CA 95616                                       %
+%              Tel: (530) 752-5020 (office)                          %
+%                   (530) 752-1028 (lab)                             %
+%              Fax: (530) 752-4158                                   %
+%              Email: hhcheng@ucdavis.edu                            %
+%              WWW:   http://iel.ucdavis.edu/people/cheng.html       %
+%              May 7, 1994                                           %
+% Modified: February 16, 2001 by Harry H. Cheng                      %
+% Modified: January  01, 2003 by Geoffrey R. Shiflett                %
+% Use at your own risk, send complaints to /dev/null                 %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% use twocolumn and 10pt options with the asme2ej format
+\documentclass[twocolumn,10pt]{asme2ej}
+
+\usepackage{epsfig} %% for loading postscript figures
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{grffile}
+\usepackage{pdfpages}
+\usepackage{algpseudocode}
+%\usepackage{multicol}
+
+%% The class has several options
+%  onecolumn/twocolumn - format for one or two columns per page
+%  10pt/11pt/12pt - use 10, 11, or 12 point font
+%  oneside/twoside - format for oneside/twosided printing
+%  final/draft - format for final/draft copy
+%  cleanfoot - take out copyright info in footer leave page number
+%  cleanhead - take out the conference banner on the title page
+%  titlepage/notitlepage - put in titlepage or leave out titlepage
+%
+%% The default is oneside, onecolumn, 10pt, final
+
+\title{Case Study 3 -- Perforated Plate Under Tension}
+
+%%% first author
+\author{Logan Halstrom
+    \affiliation{
+	PhD Graduate Student Researcher\\
+	Center for Human/Robot/Vehicle Integration and Performance\\
+	Department of Mechanical and Aerospace Engineering\\
+	University of California, Davis\\
+	Davis, California 95616\\
+    Email: ldhalstrom@ucdavis.edu
+    }
+}
+
+\begin{document}
+\maketitle
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Problem Description}
+
+This case study concerns the steady-state, linear-elastic stress analysis of a square plate with a circular perforation at its center.  The plate is 4 meters square with a 0.5 meter hole and is subjected to $\sigma= 10 kPa$ in the x direction.  Analytic solutions for the normal stresses in an infinite perforated plate are available and were used to validate the numeric OpenFoam results produced in this analysis.  For this analysis, normal stresses in the vertical and horizontal symmetry planes as well as the diagonal containing the hole and the upper right corner(Vertex 4 to 6 in Figure 1)  were considered.  The following equations are the simplified expressions for stresses in specific planes derived from the general expressions for stresses in a perforated plate stress in polar coordinates.  Simplifications are made for these cases by choosing $\theta\,=\,0,\,\frac{\pi}{2},\,and\,\frac{\pi}{4}$ radians respectively.
+
+\begin{equation}
+(\sigma_{xx})_{x=0} \left\{ \begin{array}{lll}
+        \mbox{$\sigma(1+\frac{R^2}{2y^2}+\frac{3R^4}{2y^4}) $} & \mbox{for } &|y| \geq R \\
+        \mbox{$0$} & \mbox{for } &|y| < R \end{array}. \right.
+\end{equation}
+\begin{equation}
+(\sigma_{yy})_{y=0} \left\{ \begin{array}{lll}
+        \mbox{$\sigma(\frac{R^2}{2x^2}-\frac{3R^4}{2x^4}) $} & \mbox{for } &|y| \geq R \\
+        \mbox{$0$} & \mbox{for } &|y| < R \end{array}. \right.
+\end{equation}
+\begin{equation}
+(\sigma_{xx})_{x=y} \left\{ \begin{array}{lll}
+        \mbox{$\sigma(1+\frac{R^2}{2x^2}-\frac{3R^4}{8x^4}) $} & \mbox{for } &|y| \geq Rcos(\frac{\pi}{4}) \\
+        \mbox{$0$} & \mbox{for } &|y| < Rcos(\frac{\pi}{4}) \end{array}. \right.
+\end{equation}
+
+These solutions for an infinite plate were compared to the results for a numeric approximation of the analytic case.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Numerial Solution Method}
+
+Numerical solutions were performed in OpenFoam using a hybrid polar/cartesian curvilinear grid, broken in to blocks as depicted below.
+
+\begin{figure}[thb]
+\begin{center}
+\includegraphics[width=0.45\textwidth]{Results/Grid1.png}
+\caption{Polar/Cartesian mesh block structure for perforated plate}
+\label{blocks}
+\end{center}
+\end{figure}
+
+First, a simple simulation was performed according to the settings suggested in the OpenFoam tutorial.  This provided the base directory containing steel material properties, symmetric plane stress boundary conditions, and post processing scripts utilized for extracting stress data results from specified regions.
+
+Next, a mesh sensitivity study was performed to determine if the chosen initial settings were providing proper convergence.  Referring to Figure 1, cell spacing was set based off of the x-axis boundary of Blocks 1 and 2.  For the base case, the x spacing of Block 1 was $n_{1}=10$ and Block 2 was $n_{2}=20$.  For the mesh sensitivity study, this ratio was intended to be maintained, but was noticed to be a 1 to 1 ratio while writing the report.  This would have been addressed if this error had been discovered sooner.  The results still yield a usable mesh sensitivity study, with coarser and finer spacings as follows:  $(n_{1},n_{2})=(5,5),\, (10,10),\, (40,40),\, (200,200),\, (500,500)\,$.
+
+After analyzing the results of the mesh sensitivity study, an optimal mesh spacing was chosen and used for a plate length sensitivity study, where the length of the plate was increased in the x direction while maintaining constant cell size.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\clearpage
+\section{Results and Discussion}
+
+%%%FIGURES
+For the base case provided in the OpenFoam turtorial, stress contours were plotted as seen below to provide a visualization of the general stress distribution within the perforated plate for these test cases.
+
+%\vspace{-2em}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{Results/SigmaXX.png}
+\caption{Axial stress contours for base simulation case}
+\end{center}
+\end{figure}
+%\vspace{-2em}
+
+From the stress contours, it is apparent that stress concentrations form near the hole in the x direction.  Away from the hole, the stress diminishes to an almost uniform value throughout the plate.  To analyze the effects of mesh size and plate length, further simulations sample stresses from the left wall, the bottom wall, and the diagonal between the bottom left corner and the top right corner.
+
+To determine if the mesh was optimally spaced for solution convergence, a mesh sensitivity study was next performed.  A qualitative comparison can be seen for three different sample planes in the Figures 3-6.
+
+%%\clearpage
+%%\vspace{-2em}
+%\begin{figure}[htb]
+%\begin{center}
+%\includegraphics[width=0.5\textwidth]{Results/cs3.MeshSens.VertSym.sigXX.pdf}
+%\caption{Mesh sensitivity of axial stress in vertical symmetry plane}
+%\end{center}
+%\end{figure}
+%%\vspace{-2em}
+%%\vspace{-2em}
+%\begin{figure}[htb]
+%\begin{center}
+%\includegraphics[width=0.5\textwidth]{Results/cs3.MeshSens.HorzSym.sigYY.pdf}
+%\caption{Mesh sensitivity of axial stress in horizontal symmetry plane}
+%\end{center}
+%\end{figure}
+%%\vspace{-2em}
+%%\vspace{-2em}
+%\begin{figure}[htb]
+%\begin{center}
+%\includegraphics[width=0.5\textwidth]{Results/cs3.MeshSens.Diag.sigXX.pdf}
+%\caption{Mesh sensitivity of axial stress in diagonal plane}
+%\end{center}
+%\end{figure}
+%%\vspace{-2em}
+
+Observing the general trends of the curves, it appears that increasing the fineness of the mesh beyond the initial spacing has only a small effect in improving the solution.  This improvement is most apparent at the symmetry plane boundaries where the numeric solution diverges, but otherwise the differences are negligible for the majority of the curve.  These differences can be quantitatively assessed by observing the trends in RMS error, which are reported in the following table.  Here, RMS errors of the numeric stress solutions compared to the analytic solutions are normalized by the input stress of 10 kPa and presented in percent error form.
+
+%\vspace{-4em}
+
+\begin{table}[h]
+%\caption{Figure and table captions do not end with a period}
+\begin{center}
+\label{table_ASME}
+\begin{tabular}{|c | c c |}
+\hline
+$n_2$  & \textbf{$[(\sigma_{xx})_{x=0}]_{RMS}$} & \textbf{$[(\sigma_{yy})_{y=0}]_{RMS}$}\\
+\hline
+\textbf{5} 		  & 47.7\% & 19.4\%\\
+\textbf{10}         	  & 49.1\% & 19.5\%\\
+\textbf{40} 		  & 49.6\% & 19.4\%\\
+\textbf{200}		  & 50.0\% & 19.6\%\\
+\textbf{500}		  & 49.3\% & 19.1\%\\
+\hline
+\end{tabular}
+\caption{RMS errors normalized by the applied stress for mesh sensitivity study}
+\end{center}
+\end{table}
+
+From Table 1, we can conclude that the solution is not sensitive to mesh size for the base case.  Thus, for the following length variation study, mesh size of the original case was maintained for increasing plate lengths.
+
+Effect of simulated plate length was tested for three lengths $L=2m,\,50m,\,and\,100m$.  As before, selected stresses were plotted for the symmetry planes and the diagonal slice.  The three different sized plates are compared by limiting the plot size to the original size of the plate before extension.
+
+Again referring to the RMS errors for a quantitative comparison, it can be seen in Table 2 that this trend is supported, but that the improvement on the horizontal symmetry plane has not yet diminished.  Further plate length studies could be performed to determine the limit of improvement in this plane.
+
+\begin{table}[htb]
+%\caption{Figure and table captions do not end with a period}
+\begin{center}
+\label{table_ASME}
+\begin{tabular}{|c | c c |}
+\hline
+$L [m]$  & \textbf{$[(\sigma_{xx})_{x=0}]_{RMS}$} & \textbf{$[(\sigma_{yy})_{y=0}]_{RMS}$}\\
+\hline
+\textbf{4}         	  & 49.1\% & 19.5\%\\
+\textbf{50} 		  & 40.3\% & 0.98\%\\
+\textbf{100}		  & 40.2\% & 0.69\%\\
+\hline
+\end{tabular}
+\caption{RMS errors normalized by the applied stress for plate length variation}
+\end{center}
+\end{table}
+
+However, the greater improvement in the horizontal symmetry plane may be due to the fact that the stress distribution becomes nearly uniform not far from the hole, so taking an RMS error over a very long plate might wash out this stress concentration error with a large region of uniformity.  Nontheless, the improvement in the vertical symmetry plane (which is not being elongated) is a signficant amout, and with the same mesh spacing as the original run, this simulation ran in a trivial amount of time.  Therefore, if higher accuracy is desired for this simulation, increasing plate length will be a more effective method over increasing mesh fineness.
+
+\clearpage
+%\vspace{-2em}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{Results/cs3.MeshSens.VertSym.sigXX.pdf}
+\caption{Mesh sensitivity of axial stress in vertical symmetry plane}
+\includegraphics[width=0.5\textwidth]{Results/cs3.MeshSens.HorzSym.sigYY.pdf}
+\caption{Mesh sensitivity of axial stress in horizontal symmetry plane}
+\includegraphics[width=0.5\textwidth]{Results/cs3.MeshSens.Diag.sigXX.pdf}
+\caption{Mesh sensitivity of axial stress in diagonal plane}
+\end{center}
+\end{figure}
+%%\vspace{-2em}
+%%\vspace{-2em}
+%\begin{figure}[htb]
+%\begin{center}
+%\includegraphics[width=0.5\textwidth]{Results/cs3.MeshSens.HorzSym.sigYY.pdf}
+%\caption{Mesh sensitivity of axial stress in horizontal symmetry plane}
+%\end{center}
+%\end{figure}
+%%\vspace{-2em}
+%%\vspace{-2em}
+%\begin{figure}[htb]
+%\begin{center}
+%\includegraphics[width=0.5\textwidth]{Results/cs3.MeshSens.Diag.sigXX.pdf}
+%\caption{Mesh sensitivity of axial stress in diagonal plane}
+%\end{center}
+%\end{figure}
+%%\vspace{-2em}
+
+%\clearpage
+%\vspace{-2em}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{Results/cs3.Length.VertSym.sigXX.pdf}
+\caption{Effects of length variation on axial stress in vertical symmetry plane}
+\includegraphics[width=0.5\textwidth]{Results/cs3.Length.HorzSym.sigYY.pdf}
+\caption{Effects of length variation on axial stress in horizontal symmetry plane}
+\includegraphics[width=0.5\textwidth]{Results/cs3.Length.Diag.sigXX.pdf}
+\caption{Effects of length variation on axial stress in diagonal plane}
+\end{center}
+\end{figure}
+%%\vspace{-2em}
+%%\vspace{-2em}
+%\begin{figure}[htb]
+%\begin{center}
+%\includegraphics[width=0.5\textwidth]{Results/cs3.Length.HorzSym.sigYY.pdf}
+%\caption{Effects of length variation on axial stress in horizontal symmetry plane}
+%\end{center}
+%\end{figure}
+%%\vspace{-2em}
+%%\vspace{-2em}
+%\begin{figure}[htb]
+%\begin{center}
+%\includegraphics[width=0.5\textwidth]{Results/cs3.Length.Diag.sigXX.pdf}
+%\caption{Effects of length variation on axial stress in diagonal plane}
+%\end{center}
+%\end{figure}
+%%\vspace{-2em}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\clearpage
+\section{Conclusion}
+This case study demonstrates the effectiveness of the OpenFoam solver in solid displacement finite volume solutions.  For the given perforated plate case, it was found analytically and numerically that stress concentrations appear near the hole in the plate.  A mesh sensitivity study determined that this specific case was relatively independent of the mesh coarseness.  A length variation study demonstrated that the approximation of the numeric method can be improved by increasing the plate length to make it more closely resemble the infinite length of the analytic case.  A next step in this analysis could be to sample different sections of the plate to determine if mesh sensitivity varies within the plate grid.
+
+%\section{References}
+%\begin{description}
+%\item[] 1. U Ghia, K. N Ghia, and C. T Shin. \emph{Journal of Computational Physics}, 48(3):387–411, 12 1982.
+%\item[] 2. Charles-Henri Bruneau and Mazen Saad. \emph{Computers \& Fluids}, 35(3):326–348, 3 2006.
+%\end{description}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% The bibliography is stored in an external database file
+% in the BibTeX format (file_name.bib).  The bibliography is
+% created by the following command and it will appear in this
+% position in the document. You may, of course, create your
+% own bibliography by using thebibliography environment as in
+%
+% \begin{thebibliography}{12}
+% ...
+% \bibitem{itemreference} D. E. Knudsen.
+% {\em 1966 World Bnus Almanac.}
+% {Permafrost Press, Novosibirsk.}
+% ...
+% \end{thebibliography}
+
+% Here's where you specify the bibliography style file.
+% The full file name for the bibliography style file
+% used for an ASME paper is asmems4.bst.
+%\bibliographystyle{asmems4}
+
+% Here's where you specify the bibliography database file.
+% The full file name of the bibliography database for this
+% article is asme2e.bib. The name for your database is up
+% to you.
+%\bibliography{asme2e}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\end{document}
